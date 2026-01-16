@@ -1,3 +1,4 @@
+// src/utils/calculator.ts
 import { PLATFORMS, ENTITY_LABELS } from '../data/platforms';
 import { CalculatorInputs, TimelineResult, DataEntity } from '../types';
 
@@ -5,8 +6,20 @@ export const calculateTimeline = (inputs: CalculatorInputs): TimelineResult => {
   const srcConfig = PLATFORMS[inputs.source];
   const dstConfig = PLATFORMS[inputs.destination];
   
+  // These lookups now work with dynamic string keys
   const srcPlan = srcConfig.plans[inputs.sourcePlan];
   const dstPlan = dstConfig.plans[inputs.destPlan];
+
+  // Safety check in case plan doesn't exist (defensive coding)
+  if (!srcPlan || !dstPlan) {
+    console.error("Plan not found for platform");
+    return {
+      totalDurationHours: 0, minDurationHours: 0, maxDurationHours: 0,
+      breakdown: { foundation: 0, coreData: 0, attachments: 0 },
+      entityBreakdown: {}, bottleneck: "Invalid Configuration", riskLevel: "High",
+      apiTasks: [], manualTasks: []
+    };
+  }
 
   // 1. Categorize Tasks (API vs Manual)
   const apiTasks: string[] = [];
@@ -23,7 +36,7 @@ export const calculateTimeline = (inputs: CalculatorInputs): TimelineResult => {
     }
   });
 
-  // 2. Determine Speed Limits (Bottleneck)
+  // 2. Determine Speed Limits
   const srcExportBatchSize = inputs.source === 'zendesk' ? 1000 : 30; 
   const srcLimit = srcPlan.exportLimit || srcPlan.requestsPerMinute;
   const srcRecordsPerMin = srcLimit * srcExportBatchSize;
@@ -34,17 +47,16 @@ export const calculateTimeline = (inputs: CalculatorInputs): TimelineResult => {
 
   const effectiveRecordsPerMin = Math.min(srcRecordsPerMin, dstRecordsPerMin);
   const bottleneckName = srcRecordsPerMin < dstRecordsPerMin 
-    ? `${srcConfig.name} Export Limits` 
-    : `${dstConfig.name} Import Limits`;
+    ? `${srcConfig.name} (${srcPlan.prettyName}) Limits` 
+    : `${dstConfig.name} (${dstPlan.prettyName}) Limits`;
 
-  // 3. Define Confidence Scenarios (Buffers)
-  // APIs fluctuate. We calculate 3 scenarios to give a realistic range.
+  // 3. Define Confidence Scenarios
   const baseBuffer = Math.min(srcConfig.limits.throughputBuffer, dstConfig.limits.throughputBuffer);
   
   const scenarios = {
-    likely: 1 - baseBuffer,        // Standard efficiency (e.g. ~80-85%)
-    optimistic: 0.95,              // Best case (95% efficiency, low latency)
-    conservative: 0.60             // Worst case (60% efficiency, heavy throttling/retries)
+    likely: 1 - baseBuffer,
+    optimistic: 0.95,
+    conservative: 0.60
   };
 
   // 4. Calculation Helper
@@ -66,7 +78,6 @@ export const calculateTimeline = (inputs: CalculatorInputs): TimelineResult => {
       const volume = inputs.volumes[entity] || 0;
       let ops = volume;
 
-      // Apply complexity multiplier for heavy items like Tickets
       if (entity === 'tickets') {
         ops = volume * dstConfig.features.complexityMultiplier;
       }
@@ -84,26 +95,24 @@ export const calculateTimeline = (inputs: CalculatorInputs): TimelineResult => {
     return { foundationMinutes, coreDataMinutes, breakdown };
   };
 
-  // Run calculations for all 3 scenarios
   const likely = calculateDuration(scenarios.likely);
   const optimistic = calculateDuration(scenarios.optimistic);
   const conservative = calculateDuration(scenarios.conservative);
 
-  // 5. Attachments (Bandwidth Bound) 
-  // We apply variance here too (network conditions fluctuate)
+  // 5. Attachments
   let attachmentMinutes = 0;
   let totalDataMB = 0;
   if (inputs.selectedEntities.includes('tickets')) {
     const ticketCount = inputs.volumes['tickets'] || 0;
     const totalAttachments = ticketCount * inputs.avgAttachmentsPerTicket;
     totalDataMB = totalAttachments * inputs.avgAttachmentSizeMB;
-    const estimatedBandwidthMBPerMin = 90; // ~1.5 MB/s conservative avg
+    const estimatedBandwidthMBPerMin = 90; 
     attachmentMinutes = totalDataMB / estimatedBandwidthMBPerMin;
   }
   
   const attLikely = attachmentMinutes;
-  const attOptimistic = attachmentMinutes * 0.9; // 10% faster upload
-  const attConservative = attachmentMinutes * 1.3; // 30% slower upload
+  const attOptimistic = attachmentMinutes * 0.9; 
+  const attConservative = attachmentMinutes * 1.3;
 
   // 6. Sum Totals
   const totalLikely = (likely.foundationMinutes + likely.coreDataMinutes + attLikely) / 60;
@@ -121,13 +130,12 @@ export const calculateTimeline = (inputs: CalculatorInputs): TimelineResult => {
     totalDurationHours: totalLikely,
     minDurationHours: totalOptimistic,
     maxDurationHours: totalConservative,
-    
     breakdown: {
       foundation: likely.foundationMinutes / 60,
       coreData: likely.coreDataMinutes / 60,
       attachments: attLikely / 60,
     },
-    entityBreakdown: likely.breakdown, // We use "Likely" for the detailed list
+    entityBreakdown: likely.breakdown,
     bottleneck: bottleneckName,
     riskLevel,
     apiTasks,

@@ -1,7 +1,6 @@
 // src/types/index.ts
 
 export type PlatformType = 'zendesk' | 'freshdesk';
-export type PlanType = 'growth' | 'professional' | 'enterprise';
 
 // Expanded list of all possible helpdesk data types
 export type DataEntity = 
@@ -19,6 +18,7 @@ export type DataEntity =
   | 'sla_policies';
 
 export interface PlanLimits {
+  prettyName: string; // NEW: The display name (e.g. "Suite Professional")
   requestsPerMinute: number;
   createTicketLimit?: number;
   exportLimit?: number; 
@@ -27,9 +27,9 @@ export interface PlanLimits {
 export interface PlatformConfig {
   id: PlatformType;
   name: string;
-  plans: Record<PlanType, PlanLimits>;
+  // CHANGED: Plans are now dynamic strings, not fixed types
+  plans: Record<string, PlanLimits>;
   
-  // Detailed capabilities lists
   capabilities: {
     export: DataEntity[]; 
     import: DataEntity[]; 
@@ -47,36 +47,28 @@ export interface PlatformConfig {
 
 export interface CalculatorInputs {
   source: PlatformType;
-  sourcePlan: PlanType;
+  sourcePlan: string; // CHANGED: Now accepts any string key
   destination: PlatformType;
-  destPlan: PlanType;
+  destPlan: string;   // CHANGED: Now accepts any string key
   
-  // The items the user explicitly chose to migrate
   selectedEntities: DataEntity[]; 
-  
-  // Dynamic map of volumes (e.g., { tickets: 1000, users: 500 })
   volumes: Partial<Record<DataEntity, number>>;
 
-  // Complexity specifics
   avgAttachmentsPerTicket: number;
   avgAttachmentSizeMB: number;
 }
 
 export interface TimelineResult {
-  totalDurationHours: number; // The "Likely" scenario
+  totalDurationHours: number;
+  minDurationHours: number;
+  maxDurationHours: number;
   
-  // NEW: Confidence Bands
-  minDurationHours: number; // Best case (Optimistic)
-  maxDurationHours: number; // Worst case (Conservative)
-  
-  // High-level grouping for the progress bar
   breakdown: {
-    foundation: number; // Users, Orgs, Groups, etc.
-    coreData: number;   // Tickets
-    attachments: number;// Files
+    foundation: number;
+    coreData: number;
+    attachments: number;
   };
 
-  // Detailed breakdown per entity
   entityBreakdown: Partial<Record<DataEntity, number>>;
 
   bottleneck: string; 

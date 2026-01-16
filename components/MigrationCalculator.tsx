@@ -1,11 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { PlatformType, PlanType, TimelineResult, DataEntity } from '../types';
+import { PlatformType, TimelineResult, DataEntity } from '../types';
 import { PLATFORMS, ENTITY_LABELS, ENTITY_DESCRIPTIONS } from '../data/platforms';
 import { calculateTimeline } from '../utils/calculator';
 
-// --- VISUAL AID: Tooltip Component ---
 const Tooltip = ({ text, children }: { text: string, children: React.ReactNode }) => (
   <div className="group relative flex items-center w-full">
     {children}
@@ -19,13 +18,13 @@ const Tooltip = ({ text, children }: { text: string, children: React.ReactNode }
 const MigrationCalculator: React.FC = () => {
   // --- State ---
   const [source, setSource] = useState<PlatformType>('zendesk');
-  const [sourcePlan, setSourcePlan] = useState<PlanType>('professional');
+  // Initialize with the first available plan for the default platform
+  const [sourcePlan, setSourcePlan] = useState<string>(Object.keys(PLATFORMS['zendesk'].plans)[0]);
   
   const [dest, setDest] = useState<PlatformType>('freshdesk');
-  const [destPlan, setDestPlan] = useState<PlanType>('growth');
+  const [destPlan, setDestPlan] = useState<string>(Object.keys(PLATFORMS['freshdesk'].plans)[0]);
 
   const [selectedEntities, setSelectedEntities] = useState<DataEntity[]>([]);
-  
   const [volumes, setVolumes] = useState<Partial<Record<DataEntity, number>>>({
     tickets: 10000, users: 5000, articles: 200, groups: 50, organizations: 100, macros: 50,
   });
@@ -34,6 +33,19 @@ const MigrationCalculator: React.FC = () => {
   const [avgSizeMB, setAvgSizeMB] = useState<number>(2);
 
   const [result, setResult] = useState<TimelineResult | null>(null);
+
+  // --- DYNAMIC PLAN RESET ---
+  // When Source Platform changes, reset Source Plan to the first valid option
+  useEffect(() => {
+    const firstPlan = Object.keys(PLATFORMS[source].plans)[0];
+    setSourcePlan(firstPlan);
+  }, [source]);
+
+  // When Dest Platform changes, reset Dest Plan to the first valid option
+  useEffect(() => {
+    const firstPlan = Object.keys(PLATFORMS[dest].plans)[0];
+    setDestPlan(firstPlan);
+  }, [dest]);
 
   // Auto-select matches when platforms change
   useEffect(() => {
@@ -83,7 +95,6 @@ const MigrationCalculator: React.FC = () => {
 
   const manualItemsList = getManualItems();
 
-  // Print Handler
   const handlePrint = () => {
     window.print();
   };
@@ -104,13 +115,16 @@ const MigrationCalculator: React.FC = () => {
             </h2>
           </div>
           <div className="space-y-3 mb-6">
+            {/* Source Platform Selector */}
             <select value={source} onChange={(e) => setSource(e.target.value as PlatformType)} className="w-full form-select text-sm border-slate-200 rounded-lg p-2.5 bg-slate-50 font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none">
               {Object.values(PLATFORMS).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
-            <select value={sourcePlan} onChange={(e) => setSourcePlan(e.target.value as PlanType)} className="w-full form-select text-xs border-slate-200 rounded-lg p-2 text-slate-600 focus:ring-2 focus:ring-blue-500 outline-none">
-              <option value="growth">Growth Plan</option>
-              <option value="professional">Professional Plan</option>
-              <option value="enterprise">Enterprise Plan</option>
+            
+            {/* DYNAMIC SOURCE PLANS */}
+            <select value={sourcePlan} onChange={(e) => setSourcePlan(e.target.value)} className="w-full form-select text-xs border-slate-200 rounded-lg p-2 text-slate-600 focus:ring-2 focus:ring-blue-500 outline-none">
+              {Object.entries(PLATFORMS[source].plans).map(([key, config]) => (
+                <option key={key} value={key}>{config.prettyName}</option>
+              ))}
             </select>
           </div>
           <div className="mt-auto">
@@ -142,13 +156,16 @@ const MigrationCalculator: React.FC = () => {
             </h2>
           </div>
           <div className="space-y-3 mb-6">
+            {/* Dest Platform Selector */}
             <select value={dest} onChange={(e) => setDest(e.target.value as PlatformType)} className="w-full form-select text-sm border-slate-200 rounded-lg p-2.5 bg-slate-50 font-semibold text-slate-700 focus:ring-2 focus:ring-purple-500 outline-none">
               {Object.values(PLATFORMS).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
-            <select value={destPlan} onChange={(e) => setDestPlan(e.target.value as PlanType)} className="w-full form-select text-xs border-slate-200 rounded-lg p-2 text-slate-600 focus:ring-2 focus:ring-purple-500 outline-none">
-              <option value="growth">Growth Plan</option>
-              <option value="professional">Professional Plan</option>
-              <option value="enterprise">Enterprise Plan</option>
+            
+            {/* DYNAMIC DEST PLANS */}
+            <select value={destPlan} onChange={(e) => setDestPlan(e.target.value)} className="w-full form-select text-xs border-slate-200 rounded-lg p-2 text-slate-600 focus:ring-2 focus:ring-purple-500 outline-none">
+              {Object.entries(PLATFORMS[dest].plans).map(([key, config]) => (
+                <option key={key} value={key}>{config.prettyName}</option>
+              ))}
             </select>
           </div>
           <div className="mt-auto">
@@ -305,14 +322,15 @@ const MigrationCalculator: React.FC = () => {
         </div>
       </div>
 
-      {/* --- SECTION 3: FINAL RESULTS (The Report Card) --- */}
+      {/* --- SECTION 3: FINAL RESULTS --- */}
       {result && (
         <div className="bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden relative print:shadow-none print:border-none">
           
           <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center print:bg-white print:border-b-2 print:border-slate-900">
              <div>
                <h2 className="text-xl font-bold text-slate-900">Migration Architecture Report</h2>
-               <p className="text-xs text-slate-500 mt-1">Config: {PLATFORMS[source].name} ({sourcePlan}) &rarr; {PLATFORMS[dest].name} ({destPlan})</p>
+               {/* Display Pretty Names in Report */}
+               <p className="text-xs text-slate-500 mt-1">Config: {PLATFORMS[source].name} ({PLATFORMS[source].plans[sourcePlan]?.prettyName}) &rarr; {PLATFORMS[dest].name} ({PLATFORMS[dest].plans[destPlan]?.prettyName})</p>
              </div>
              <div className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase border flex items-center gap-2 print:border-slate-900 print:text-slate-900 print:bg-transparent ${
                result.riskLevel === 'Low' ? 'bg-green-100 text-green-700 border-green-200' : 
@@ -324,6 +342,7 @@ const MigrationCalculator: React.FC = () => {
              </div>
           </div>
 
+          {/* ... Rest of report UI remains the same ... */}
           <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-slate-100 print:grid-cols-2 print:divide-x">
             
             {/* Left Col: Timeline Breakdown */}
@@ -334,7 +353,6 @@ const MigrationCalculator: React.FC = () => {
                   {formatTime(result.totalDurationHours)}
                 </div>
                 
-                {/* NEW: Confidence Bands */}
                 <div className="flex gap-3 mt-3">
                    <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded">
                      Best Case: {formatTime(result.minDurationHours)}
@@ -378,7 +396,6 @@ const MigrationCalculator: React.FC = () => {
             {/* Right Col: Operational Impact & Manual Tasks */}
             <div className="p-8 bg-slate-50/30 print:bg-white">
               
-              {/* NEW: Operational Impact Card */}
               <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm mb-6">
                 <h3 className="text-xs font-bold text-slate-900 uppercase mb-3 flex items-center gap-2">
                   <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>

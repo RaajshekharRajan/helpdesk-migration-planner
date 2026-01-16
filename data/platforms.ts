@@ -1,3 +1,4 @@
+// src/data/platforms.ts
 import { PlatformType, PlatformConfig, DataEntity } from '../types';
 
 export const PLATFORMS: Record<PlatformType, PlatformConfig> = {
@@ -5,9 +6,12 @@ export const PLATFORMS: Record<PlatformType, PlatformConfig> = {
     id: 'zendesk',
     name: 'Zendesk Support',
     plans: {
-      growth: { requestsPerMinute: 400, exportLimit: 10 },
-      professional: { requestsPerMinute: 400, exportLimit: 10 },
-      enterprise: { requestsPerMinute: 700, exportLimit: 10 },
+      // REAL ZENDESK PLANS
+      'suite_team': { prettyName: 'Suite Team', requestsPerMinute: 200, exportLimit: 10 },
+      'suite_growth': { prettyName: 'Suite Growth', requestsPerMinute: 400, exportLimit: 10 },
+      'suite_pro': { prettyName: 'Suite Professional', requestsPerMinute: 700, exportLimit: 10 },
+      'suite_enterprise': { prettyName: 'Suite Enterprise', requestsPerMinute: 700, exportLimit: 10 },
+      'legacy_enterprise': { prettyName: 'Legacy Enterprise', requestsPerMinute: 700, exportLimit: 10 },
     },
     capabilities: {
       export: [
@@ -33,9 +37,11 @@ export const PLATFORMS: Record<PlatformType, PlatformConfig> = {
     id: 'freshdesk',
     name: 'Freshdesk',
     plans: {
-      growth: { requestsPerMinute: 200, createTicketLimit: 80 },
-      professional: { requestsPerMinute: 400, createTicketLimit: 160 },
-      enterprise: { requestsPerMinute: 700, createTicketLimit: 280 },
+      // REAL FRESHDESK PLANS
+      'free': { prettyName: 'Free Plan', requestsPerMinute: 50, createTicketLimit: 20 },
+      'growth': { prettyName: 'Growth', requestsPerMinute: 100, createTicketLimit: 40 },
+      'pro': { prettyName: 'Pro', requestsPerMinute: 200, createTicketLimit: 80 },
+      'enterprise': { prettyName: 'Enterprise', requestsPerMinute: 400, createTicketLimit: 160 },
     },
     capabilities: {
       export: [
@@ -73,7 +79,6 @@ export const ENTITY_LABELS: Record<DataEntity, string> = {
   sla_policies: 'SLA Policies',
 };
 
-// --- NEW: Visual Aid Descriptions ---
 export const ENTITY_DESCRIPTIONS: Record<DataEntity, string> = {
   tickets: 'Core support records including status, priority, comments, and file attachments.',
   users: 'Profiles for both Support Agents and End-Users (Customers).',
