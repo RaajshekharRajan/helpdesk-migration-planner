@@ -1,8 +1,19 @@
 // src/types/index.ts
 
-export type PlatformType = 'zendesk' | 'freshdesk';
+// 1. UPDATE THIS LIST to include all 10 platforms
+export type PlatformType = 
+  | 'zendesk' 
+  | 'freshdesk' 
+  | 'salesforce' 
+  | 'hubspot' 
+  | 'intercom' 
+  | 'helpscout' 
+  | 'jira' 
+  | 'front' 
+  | 'gladly' 
+  | 'gorgias';
 
-// Expanded list of all possible helpdesk data types
+// 2. Keep the rest the same (but ensure PlanType is removed if you haven't already)
 export type DataEntity = 
   | 'tickets' 
   | 'users' 
@@ -18,7 +29,7 @@ export type DataEntity =
   | 'sla_policies';
 
 export interface PlanLimits {
-  prettyName: string; // NEW: The display name (e.g. "Suite Professional")
+  prettyName?: string; // Optional but good for UI
   requestsPerMinute: number;
   createTicketLimit?: number;
   exportLimit?: number; 
@@ -27,7 +38,7 @@ export interface PlanLimits {
 export interface PlatformConfig {
   id: PlatformType;
   name: string;
-  // CHANGED: Plans are now dynamic strings, not fixed types
+  // Plans are dynamic strings now
   plans: Record<string, PlanLimits>;
   
   capabilities: {
@@ -47,9 +58,9 @@ export interface PlatformConfig {
 
 export interface CalculatorInputs {
   source: PlatformType;
-  sourcePlan: string; // CHANGED: Now accepts any string key
+  sourcePlan: string;
   destination: PlatformType;
-  destPlan: string;   // CHANGED: Now accepts any string key
+  destPlan: string;
   
   selectedEntities: DataEntity[]; 
   volumes: Partial<Record<DataEntity, number>>;
