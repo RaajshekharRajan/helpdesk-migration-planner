@@ -462,7 +462,8 @@ const MigrationCalculator: React.FC = () => {
                 className="bg-white text-slate-900 hover:bg-blue-50 px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-colors shadow-lg"
                >
                 Book Engineer
-               </button>    
+               </button>  
+            </div>
           </div>
         </div>
       )}
