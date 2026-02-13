@@ -457,10 +457,12 @@ const MigrationCalculator: React.FC = () => {
                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                  Download PDF
                </button>
-               <button className="bg-white text-slate-900 hover:bg-blue-50 px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-colors shadow-lg">
-                 Book Engineer
-               </button>
-            </div>
+               <button
+                onClick={() => window.open("https://cal.com/clonepartner/meet?duration=30", "_blank")}
+                className="bg-white text-slate-900 hover:bg-blue-50 px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-colors shadow-lg"
+               >
+                Book Engineer
+               </button>    
           </div>
         </div>
       )}
